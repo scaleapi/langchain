@@ -39,7 +39,7 @@ class Spellbook(VectorStore):
             url=f'{SPELLBOOK_ENDPOINT}/similaritySearch',
             headers={'authorization': f'Basic {self._api_key}'},
             json={
-                # 'vectorStoreName': self._vector_store_name,
+                'vectorStoreName': self._vector_store_name,
                 'queryEmbedding': query_embedding,
                 'k': k,
             },
