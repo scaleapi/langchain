@@ -1,3 +1,5 @@
+import os
+import uuid
 from typing import Any, Iterable, List, Optional
 
 import requests
@@ -15,13 +17,18 @@ class Spellbook(VectorStore):
 
     def __init__(
         self,
-        api_key: str,
-        name: str,
+        name: Optional[str] = None,
         embedding_function: Optional[Embeddings] = None,
     ):
         """Initialize with Spellbook client."""
-        self._api_key = api_key
-        self._vector_store_name = name
+        spellbook_api_key = os.getenv('SPELLBOOK_API_KEY')
+        if not spellbook_api_key:
+            raise ValueError(
+                'Could not retrieve Spellbook API key. '
+                'Ensure your SPELLBOOK_API_KEY env variable is properly set.'
+            )
+        self._api_key = spellbook_api_key
+        self._vector_store_name = name or str(uuid.uuid4())
         self._embedding_function = embedding_function or OpenAIEmbeddings()
 
     def similarity_search(
@@ -69,35 +76,42 @@ class Spellbook(VectorStore):
     @classmethod
     def from_texts(
         cls,
-        api_key: str,
-        name: str,
         texts: List[str],
+        embedding: Optional[Embeddings] = None,
         metadatas: Optional[List[dict]] = None,
-        embedding_function: Optional[Embeddings] = None,
         batch_size: int = 32,
+        name: Optional[str] = None,
         **kwargs: Any,
     ) -> VectorStore:
+        name = name or str(uuid.uuid4())
+        spellbook_api_key = os.getenv('SPELLBOOK_API_KEY')
+        if not spellbook_api_key:
+            raise ValueError(
+                'Could not retrieve Spellbook API key. '
+                'Ensure your SPELLBOOK_API_KEY env variable is properly set.'
+            )
+
         # Create vector store, error if name exists
         requests.post(
             url=f'{SPELLBOOK_ENDPOINT}/createVectorStore',
-            headers={'authorization': f'Basic {api_key}'},
+            headers={'authorization': f'Basic {spellbook_api_key}'},
             json={'name': name},
         )
 
         # Embed and upload documents in batches
-        ret = cls(api_key, name, embedding_function)
-        embedding_function = embedding_function or OpenAIEmbeddings()
+        ret = cls(name, embedding)
+        embedding = embedding or OpenAIEmbeddings()
         for i in range(0, len(texts), batch_size):
             i_end = min(i + batch_size, len(texts))
             texts_batch = texts[i:i_end]
-            embeddings_batch = embedding_function.embed_documents(texts_batch)
+            embeddings_batch = embedding.embed_documents(texts_batch)
             if metadatas:
                 metadatas_batch = metadatas[i:i_end]
             else:
                 metadatas_batch = [{} for _ in range(i, i_end)]
             requests.post(
                 url=f'{SPELLBOOK_ENDPOINT}/upload',
-                headers={'authorization': f'Basic {api_key}'},
+                headers={'authorization': f'Basic {spellbook_api_key}'},
                 json={
                     'vectorStoreName': name,
                     'items': [
