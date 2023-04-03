@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
 
 import requests
 
@@ -177,7 +177,7 @@ class SpellbookVectorStore(VectorStore):
 
     @staticmethod
     def _post_request(
-        route: str, json: Dict, spellbook_api_key: Optional[str] = None
+        route: str, json: dict, spellbook_api_key: Optional[str] = None
     ):
         if not spellbook_api_key:
             spellbook_api_key = os.getenv('SPELLBOOK_API_KEY')
