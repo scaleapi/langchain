@@ -1,23 +1,25 @@
 from langchain.document_loaders import HNLoader
-from langchain.vectorstores.spellbook import Spellbook
+from langchain.vectorstores.spellbook import SpellbookVectorStore
 
-
-def main():
+if __name__ == '__main__':
     loader = HNLoader('https://news.ycombinator.com/')
     docs = loader.load()
 
-    # create a new vector store from docs
-    # sb = Spellbook.from_texts(texts=[doc.page_content for doc in docs])
+    name = 'my vector store'
 
-    # or fetch and upload to an existing vector store
-    name = 'my existing vector store'
-    sb = Spellbook(name=name)  # requires OPENAI_API_KEY env var to be set
-    sb.add_texts(texts=[doc.page_content for doc in docs])
+    sb = SpellbookVectorStore.from_texts(
+        texts=[doc.page_content for doc in docs[:1]],
+        name=name,
+    )
 
-    # query vector store
-    query = 'The coolest hack'
-    print('Query:', query, '\n\nDocuments:\n', sb.similarity_search(query))
+    ids = sb.add_documents(docs[1:])
+    print('added', ids)
 
+    sources = sb.similarity_search('large language models')
+    for i, source in enumerate(sources, 1):
+        print(f'{i}.\t{source.page_content}')
 
-if __name__ == '__main__':
-    main()
+    ids = sb.delete_documents(ids)
+    print('deleted', ids)
+
+    SpellbookVectorStore(name).delete_vector_store()
